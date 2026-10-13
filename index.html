@@ -1,0 +1,1422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Python Scripts Viewer with Setup Guides</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #eef3f1;
+            --surface: #ffffff;
+            --ink: #12231f;
+            --muted: #50655f;
+            --line: #d5e0dc;
+            --accent: #1f8a63;
+            --accent-soft: #dff2ea;
+            --code-bg: #0d1917;
+            --code-ink: #dbe9e4;
+            --flag: #ffb454;
+            --flag-ink: #1d1300;
+            --radius: 16px;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #0a1210; --surface: #111e1b; --ink: #e6f1ed; --muted: #9bb2aa;
+                --line: #223632; --accent: #3ccf93; --accent-soft: #15332a;
+                --code-bg: #071210;
+            }
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Manrope', 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 48px 24px 64px;
+            background:
+                radial-gradient(900px 400px at 10% -10%, var(--accent-soft), transparent 70%),
+                var(--bg);
+            color: var(--ink);
+            min-height: 100vh;
+        }
+        .page { max-width: 1280px; margin: 0 auto; }
+        h2 {
+            font-size: clamp(28px, 4vw, 40px);
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            margin: 0 0 6px;
+            color: var(--ink);
+        }
+        .subtitle { margin: 0 0 28px; color: var(--muted); font-size: 16px; }
+
+        /* Tabs as a segmented control */
+        .tab {
+            display: inline-flex;
+            gap: 4px;
+            padding: 5px;
+            margin-bottom: 20px;
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            overflow-x: auto;
+            max-width: 100%;
+        }
+        .tab button {
+            background: transparent;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            padding: 10px 22px;
+            font: 700 15px 'JetBrains Mono', monospace;
+            color: var(--muted);
+            border-radius: 999px;
+            transition: background .2s, color .2s;
+        }
+        .tab button:hover { color: var(--ink); background: var(--accent-soft); }
+        .tab button:focus-visible { box-shadow: 0 0 0 3px var(--accent); }
+        .tab button.active { background: var(--accent); color: #fff; }
+
+        /* Tab panel */
+        .tabcontent {
+            display: none;
+            gap: 24px;
+            align-items: flex-start;
+            animation: fadeEffect .35s ease;
+        }
+        @keyframes fadeEffect { from {opacity: 0; transform: translateY(6px);} to {opacity: 1; transform: none;} }
+        @media (prefers-reduced-motion: reduce) { .tabcontent { animation: none; } }
+
+        /* Guide panel */
+        .guide-panel {
+            flex: 0 0 320px;
+            position: sticky;
+            top: 24px;
+            background: var(--surface);
+            padding: 26px;
+            border-radius: var(--radius);
+            border: 1px solid var(--line);
+            border-left: 5px solid var(--accent);
+            box-shadow: 0 10px 30px -18px rgba(10, 40, 30, .35);
+        }
+        .guide-panel h3 {
+            margin: 0 0 14px;
+            font-size: 18px;
+            font-weight: 800;
+            color: var(--ink);
+        }
+        .guide-panel p, .guide-panel ul { font-size: 14.5px; color: var(--muted); line-height: 1.7; }
+        .guide-panel p { margin-top: 0; }
+        .guide-panel strong { color: var(--ink); }
+        .guide-panel ul { padding-left: 18px; margin-bottom: 0; }
+        .guide-panel li { margin-bottom: 10px; }
+        .guide-panel code {
+            background: var(--accent-soft);
+            padding: 2px 7px;
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12.5px;
+            color: var(--accent);
+        }
+
+        /* Code area */
+        .code-wrapper {
+            flex: 1;
+            min-width: 0;
+            position: relative;
+            border-radius: var(--radius);
+            overflow: hidden;
+            background: var(--code-bg);
+            border: 1px solid var(--line);
+            box-shadow: 0 24px 50px -28px rgba(5, 25, 18, .6);
+        }
+        .code-wrapper::before {
+            content: "";
+            display: block;
+            height: 46px;
+            background:
+                radial-gradient(circle at 22px 23px, #ff5f57 6px, transparent 7px),
+                radial-gradient(circle at 44px 23px, #febc2e 6px, transparent 7px),
+                radial-gradient(circle at 66px 23px, #28c840 6px, transparent 7px),
+                rgba(255,255,255,.04);
+            border-bottom: 1px solid rgba(255,255,255,.07);
+        }
+        .copy-btn {
+            position: absolute;
+            top: 8px;
+            right: 12px;
+            padding: 7px 16px;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 999px;
+            cursor: pointer;
+            font: 700 13px 'Manrope', sans-serif;
+            transition: transform .15s, background-color .2s;
+        }
+        .copy-btn:hover { transform: translateY(-1px); filter: brightness(1.08); }
+        .copy-btn:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+        .copy-btn.copied { background: #2f80ed; }
+
+        pre {
+            background: transparent;
+            color: var(--code-ink);
+            padding: 22px 24px 26px;
+            overflow-x: auto;
+            font-family: 'JetBrains Mono', 'Consolas', monospace;
+            font-size: 13.5px;
+            line-height: 1.7;
+            margin: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        /* Paths and filenames to change */
+        .highlight-red {
+            background: var(--flag);
+            color: var(--flag-ink);
+            padding: 1px 6px;
+            border-radius: 5px;
+            font-weight: 600;
+        }
+        .guide-panel .highlight-red { font-weight: 700; }
+
+        @media (max-width: 900px) {
+            body { padding: 28px 14px 48px; }
+            .tabcontent { flex-direction: column; }
+            .guide-panel { flex: auto; width: 100%; position: static; }
+            .code-wrapper { width: 100%; }
+        }
+
+        /* ===== Detailed explanation ===== */
+        .explain-btn {
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            width: 100%; margin-top: 18px; padding: 13px 16px;
+            background: var(--ink); color: var(--surface);
+            border: none; border-radius: 12px; cursor: pointer;
+            font: 700 14.5px 'Manrope', sans-serif;
+            transition: transform .15s, box-shadow .2s;
+        }
+        .explain-btn:hover { transform: translateY(-1px); box-shadow: 0 10px 22px -12px rgba(0,0,0,.5); }
+        .explain-btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+        .overlay {
+            position: fixed; inset: 0; background: rgba(5, 18, 14, .55);
+            backdrop-filter: blur(3px); opacity: 0; pointer-events: none;
+            transition: opacity .25s; z-index: 50;
+        }
+        .overlay.open { opacity: 1; pointer-events: auto; }
+        .drawer {
+            position: fixed; top: 0; right: 0; height: 100%; width: min(760px, 100%);
+            background: var(--bg); z-index: 60; display: flex; flex-direction: column;
+            transform: translateX(100%); transition: transform .3s ease;
+            box-shadow: -20px 0 50px -20px rgba(0,0,0,.45);
+        }
+        .drawer.open { transform: none; }
+        .drawer-head {
+            padding: 22px 26px 16px; background: var(--surface);
+            border-bottom: 1px solid var(--line);
+        }
+        .drawer-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+        .drawer-head h3 { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.01em; }
+        .drawer-head p { margin: 8px 0 0; color: var(--muted); font-size: 14.5px; line-height: 1.6; }
+        .icon-btn {
+            border: 1px solid var(--line); background: var(--bg); color: var(--ink);
+            border-radius: 10px; width: 36px; height: 36px; cursor: pointer; font-size: 18px; flex: none;
+        }
+        .icon-btn:hover { background: var(--accent-soft); }
+        .toolbar { display: flex; gap: 8px; margin-top: 14px; }
+        .chip-btn {
+            border: 1px solid var(--line); background: var(--bg); color: var(--ink);
+            padding: 7px 14px; border-radius: 999px; cursor: pointer; font: 600 13px 'Manrope', sans-serif;
+        }
+        .chip-btn:hover { background: var(--accent-soft); }
+        .drawer-body { overflow-y: auto; padding: 20px 26px 40px; flex: 1; }
+        .step {
+            background: var(--surface); border: 1px solid var(--line);
+            border-radius: 14px; margin-bottom: 14px; overflow: hidden;
+        }
+        .step summary {
+            list-style: none; cursor: pointer; display: flex; gap: 14px; align-items: center;
+            padding: 16px 18px; font-weight: 700; font-size: 16px;
+        }
+        .step summary::-webkit-details-marker { display: none; }
+        .step summary::after { content: "+"; margin-left: auto; font-size: 22px; color: var(--accent); }
+        .step[open] summary::after { content: "\2212"; }
+        .step summary:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; }
+        .num {
+            flex: none; width: 30px; height: 30px; border-radius: 50%;
+            background: var(--accent); color: #fff; display: grid; place-items: center;
+            font: 700 13px 'JetBrains Mono', monospace;
+        }
+        .step-desc { margin: 0; padding: 0 18px 14px; color: var(--muted); font-size: 14.5px; line-height: 1.7; }
+        .lines { border-top: 1px solid var(--line); }
+        .line-row {
+            display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 16px;
+            padding: 12px 18px; border-bottom: 1px solid var(--line);
+        }
+        .line-row:last-child { border-bottom: none; }
+        .line-row code {
+            background: var(--code-bg); color: var(--code-ink); padding: 8px 10px; border-radius: 8px;
+            font: 12.5px/1.55 'JetBrains Mono', monospace; white-space: pre-wrap; word-break: break-word; align-self: start;
+        }
+        .line-row span { font-size: 14px; line-height: 1.65; color: var(--ink); }
+        @media (max-width: 640px) { .line-row { grid-template-columns: 1fr; gap: 8px; } }
+
+        /* ===== v3: full-screen layout, simple blue palette ===== */
+        :root {
+            --bg: #f4f6fb; --surface: #ffffff; --ink: #0f172a; --muted: #55627a;
+            --line: #e2e8f2; --accent: #2563eb; --accent-soft: #e6eeff;
+            --code-bg: #0f172a; --code-ink: #e2e8f0;
+            --flag: #fbbf24; --flag-ink: #1c1400; --radius: 14px;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #0b1020; --surface: #141b30; --ink: #e8edf8; --muted: #9aa8c4;
+                --line: #243050; --accent: #5b8cff; --accent-soft: #1b2850;
+                --code-bg: #090e1c;
+            }
+        }
+        html, body { height: 100%; }
+        body { padding: 0; background: var(--bg); }
+        .page {
+            max-width: none; height: 100vh; padding: 20px 28px 24px;
+            display: flex; flex-direction: column;
+        }
+        .page > h2 { font-size: 26px; margin: 0; }
+        .subtitle { margin: 4px 0 16px; font-size: 14.5px; }
+        .tab { align-self: flex-start; margin-bottom: 16px; flex: none; }
+        .tab button.active { background: var(--accent); }
+        .tabcontent { flex: 1; min-height: 0; align-items: stretch; }
+        .guide-panel {
+            flex: 0 0 340px; position: static; overflow-y: auto;
+            border-left: 1px solid var(--line); border-top: 4px solid var(--accent);
+            box-shadow: none;
+        }
+        .guide-panel code { color: var(--accent); }
+        .code-wrapper {
+            display: flex; flex-direction: column; box-shadow: none; border: 1px solid var(--line);
+        }
+        .code-wrapper::before { flex: none; }
+        .code-wrapper pre { flex: 1; min-height: 0; overflow: auto; font-size: 14px; }
+        .copy-btn { background: var(--accent); }
+        .explain-btn { background: var(--accent); color: #fff; box-shadow: none; }
+        .explain-btn:hover { filter: brightness(1.1); box-shadow: none; }
+
+        /* Explanation: full screen */
+        .overlay { display: none; }
+        .drawer { width: 100%; transform: translateY(100%); box-shadow: none; }
+        .drawer.open { transform: none; }
+        .drawer-head { padding: 22px max(26px, calc((100% - 1040px) / 2)) 16px; }
+        .drawer-body { padding: 22px max(26px, calc((100% - 1040px) / 2)) 48px; }
+        .num { background: var(--accent); }
+
+        @media (max-width: 900px) {
+            .page { height: auto; min-height: 100vh; padding: 16px 14px 32px; }
+            .tabcontent { flex: none; }
+            .guide-panel { flex: auto; overflow: visible; }
+            .code-wrapper pre { overflow: visible; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="page">
+    <h2>Python Scripts Viewer</h2>
+    <p class="subtitle">Python scripts for ArcPy, with setup guides.</p>
+
+    <div class="tab">
+        <button class="tablinks active" onclick="openTab(event, 'NDVI')">NDVI.py</button>
+        <button class="tablinks" onclick="openTab(event, 'NDWI')">NDWI.py</button>
+        <button class="tablinks" onclick="openTab(event, 'BandComposites')">BandComposites.py</button>
+        <button class="tablinks" onclick="openTab(event, 'Watershed')">Watershed.py</button>
+    </div>
+
+    <!-- NDVI.py Tab -->
+    <div id="NDVI" class="tabcontent" style="display: flex;">
+        <div class="guide-panel">
+            <h3>Configuration Guide</h3>
+            <p><strong>Action Required:</strong> Before running this code, update the <span class="highlight-red">yellow highlighted</span> directory path.</p>
+            <ul>
+                <li>Change the path for <code>base_dir</code> to the directory where your Landsat Band files are currently located.</li>
+                <li><strong>Important:</strong> Make sure to add your <span class="highlight-red">SagarAOI.kml</span> file into this exact same folder. If your KML has a different name, update it in the code.</li>
+                <li><em>Note:</em> The script finds files with wildcards (<code>LC*_B4*</code> and <code>LC*_B5*</code>), so keep irrelevant TIFs out of that folder. No filenames need to be typed by hand.</li>
+                <li><em>Heads-up:</em> This version calculates NDVI using Band 4 (Red) and Band 5 (NIR), employing the formula <code>(NIR - Red) / (NIR + Red)</code>.</li>
+            </ul>
+            <button class="explain-btn" onclick="openExplain('NDVI', this)">Detailed explanation</button>
+        </div>
+        <div class="code-wrapper">
+            <button class="copy-btn" onclick="copyCode('code-ndvi', this)">Copy Code</button>
+            <pre><code id="code-ndvi">import arcpy
+import os
+from arcpy.sa import *
+
+# ==========================================
+# 1. SETUP &amp; CACHE CLEARING
+# ==========================================
+arcpy.CheckOutExtension("Spatial")
+arcpy.env.overwriteOutput = True
+arcpy.ClearWorkspaceCache_management()
+
+base_dir = r"<span class="highlight-red">D:\Geoinformatics\BAND Files</span>"
+arcpy.env.workspace = base_dir
+
+print("Initializing error-proof NDVI workflow...")
+
+# ==========================================
+# 2. MOSAIC BANDS
+# ==========================================
+print("Mosaicking Band 4 (Red) and Band 5 (NIR)...")
+b4_list = arcpy.ListRasters("LC*_B4*", "TIF")
+b5_list = arcpy.ListRasters("LC*_B5*", "TIF")
+
+arcpy.management.MosaicToNewRaster(
+    input_rasters=b4_list, 
+    output_location=base_dir, 
+    raster_dataset_name_with_extension="Simple_B4.tif", 
+    pixel_type="16_BIT_UNSIGNED", 
+    number_of_bands=1
+)
+
+arcpy.management.MosaicToNewRaster(
+    input_rasters=b5_list, 
+    output_location=base_dir, 
+    raster_dataset_name_with_extension="Simple_B5.tif", 
+    pixel_type="16_BIT_UNSIGNED", 
+    number_of_bands=1
+)
+
+# ==========================================
+# 3. CALCULATE NDVI DIRECTLY
+# ==========================================
+print("Calculating NDVI directly from bands...")
+b4 = Raster("Simple_B4.tif")
+b5 = Raster("Simple_B5.tif")
+
+# Standard Index Math: (NIR - Red) / (NIR + Red)
+ndvi = (Float(b5) - Float(b4)) / (Float(b5) + Float(b4))
+
+# ==========================================
+# 4. CONVERT KML TO SHAPEFILE (ANY GEOMETRY)
+# ==========================================
+print("Converting KML to a fresh shapefile to bypass lock/corruption issues...")
+kml_file = os.path.join(base_dir, "<span class="highlight-red">SagarAOI.kml</span>")
+kml_gdb_name = "SagarAOI_Layer"
+
+try:
+    arcpy.conversion.KMLToLayer(kml_file, base_dir, kml_gdb_name)
+    gdb_path = os.path.join(base_dir, f"{kml_gdb_name}.gdb")
+    
+    # Dynamically walk through the GDB to find ANY feature class, regardless of type
+    kml_fc = None
+    for dirpath, dirnames, filenames in arcpy.da.Walk(gdb_path, datatype="FeatureClass"):
+        for filename in filenames:
+            kml_fc = os.path.join(dirpath, filename)
+            break
+        if kml_fc:
+            break
+            
+    if not kml_fc:
+        raise ValueError("No geometry found at all inside the converted KML geodatabase.")
+    
+    desc = arcpy.Describe(kml_fc)
+    new_shp_name = "SagarAOI_Mask.shp"
+    out_shp_path = os.path.join(base_dir, new_shp_name)
+    
+    # Intelligently handle Lines vs. Polygons
+    if desc.shapeType == "Polygon":
+        print("--&gt; Found Polygon geometry. Exporting...")
+        arcpy.conversion.FeatureClassToFeatureClass(kml_fc, base_dir, new_shp_name)
+    elif desc.shapeType == "Polyline":
+        print("--&gt; Notice: KML contains Lines. Converting to a closed Polygon...")
+        arcpy.management.FeatureToPolygon(kml_fc, out_shp_path)
+    else:
+        print(f"--&gt; Found {desc.shapeType} geometry. Attempting standard export...")
+        arcpy.conversion.FeatureClassToFeatureClass(kml_fc, base_dir, new_shp_name)
+    
+    mask_feature = out_shp_path
+    print(f"--&gt; Successfully created new mask: {mask_feature}")
+
+except Exception as e:
+    print(f"⚠️ KML to Shapefile conversion failed: {e}")
+    mask_feature = os.path.join(base_dir, "sagar_polygon.shp")
+
+# ==========================================
+# 5. FAILSAFE CLIP &amp; SAVE
+# ==========================================
+print("Clipping to polygon and saving to folder...")
+final_output = ""
+
+try:
+    # Attempt to clip using the newly generated shapefile
+    ndvi_clipped = ExtractByMask(ndvi, mask_feature)
+    final_output = os.path.join(base_dir, "Simple_NDVI_Final.tif")
+    ndvi_clipped.save(final_output)
+    print("--&gt; Clipping successful!")
+    
+except Exception as e:
+    # FAILSAFE: Save the unclipped raster if clipping still fails
+    print(f"⚠️ Clipping failed: {e}")
+    print("--&gt; FAILSAFE TRIGGERED: Saving the unclipped NDVI so you have the data...")
+    final_output = os.path.join(base_dir, "Simple_NDVI_Unclipped.tif")
+    ndvi.save(final_output)
+
+# ==========================================
+# 6. ADD TO MAP &amp; AUTOSAVE PROJECT
+# ==========================================
+print("Adding final result to map and executing strict autosave...")
+try:
+    aprx = arcpy.mp.ArcGISProject("CURRENT")
+    active_map = aprx.activeMap
+
+    if active_map and final_output:
+        active_map.addDataFromPath(final_output)
+
+    aprx.save()
+except Exception as e:
+    print("--&gt; Notice: Could not add to map/autosave (this is normal if running outside ArcGIS Pro).")
+
+print("✅ Complete! Math processed, file saved, and ArcGIS Pro project autosaved.")</code></pre>
+        </div>
+    </div>
+
+    <!-- NDWI.py Tab -->
+    <div id="NDWI" class="tabcontent">
+        <div class="guide-panel">
+            <h3>Configuration Guide</h3>
+            <p><strong>Action Required:</strong> Before running this code, update the <span class="highlight-red">yellow highlighted</span> directory path.</p>
+            <ul>
+                <li>Change the path for <code>base_dir</code> to the directory where your Landsat Band files are currently located.</li>
+                <li><strong>Important:</strong> Make sure to add your <span class="highlight-red">SagarAOI.kml</span> file into this exact same folder. If your KML has a different name, update it below in the code.</li>
+                <li><em>Note:</em> The script utilizes wildcards (<code>LC*_B3*</code> and <code>LC*_B5*</code>) to find files, so ensure no irrelevant TIFs are present in that directory.</li>
+            </ul>
+            <button class="explain-btn" onclick="openExplain('NDWI', this)">Detailed explanation</button>
+        </div>
+        <div class="code-wrapper">
+            <button class="copy-btn" onclick="copyCode('code-ndwi', this)">Copy Code</button>
+            <pre><code id="code-ndwi">import arcpy
+import os
+from arcpy.sa import *
+
+# ==========================================
+# 1. SETUP &amp; CACHE CLEARING
+# ==========================================
+arcpy.CheckOutExtension("Spatial")
+arcpy.env.overwriteOutput = True
+arcpy.ClearWorkspaceCache_management()
+
+base_dir = r"<span class="highlight-red">D:\Geoinformatics\BAND Files</span>"
+arcpy.env.workspace = base_dir
+
+print("Initializing NDWI.docx compliant workflow...")
+
+# ==========================================
+# 2. MOSAIC BANDS
+# ==========================================
+print("Mosaicking Band 3 and Band 5 with specific operators...")
+b3_list = arcpy.ListRasters("LC*_B3*", "TIF")
+b5_list = arcpy.ListRasters("LC*_B5*", "TIF")
+
+arcpy.management.MosaicToNewRaster(
+    input_rasters=b3_list, 
+    output_location=base_dir, 
+    raster_dataset_name_with_extension="B3_Mosaic.tif", 
+    pixel_type="16_BIT_UNSIGNED", 
+    number_of_bands=1,
+    mosaic_method="LAST",
+    mosaic_colormap_mode="FIRST"
+)
+
+arcpy.management.MosaicToNewRaster(
+    input_rasters=b5_list, 
+    output_location=base_dir, 
+    raster_dataset_name_with_extension="B5_Mosaic.tif", 
+    pixel_type="16_BIT_UNSIGNED", 
+    number_of_bands=1,
+    mosaic_method="LAST",
+    mosaic_colormap_mode="FIRST"
+)
+
+# ==========================================
+# 3. CALCULATE NDWI WITH RADIOMETRIC CALIBRATION
+# ==========================================
+print("Applying scaling factors and calculating NDWI_Final...")
+b3 = Raster("B3_Mosaic.tif")
+b5 = Raster("B5_Mosaic.tif")
+
+# Apply Landsat scaling factor as per documentation
+b3_scaled = Float(b3) * 0.0000275 - 0.2
+b5_scaled = Float(b5) * 0.0000275 - 0.2
+
+# Implement the SetNull logic from the document
+invalid_mask = (b3_scaled &lt;= 0) | (b5_scaled &lt;= 0)
+ndwi_math = (b3_scaled - b5_scaled) / (b3_scaled + b5_scaled)
+
+ndwi_final = SetNull(invalid_mask, ndwi_math)
+ndwi_final.save("NDWI_Final.tif")
+
+# ==========================================
+# 4. EXTRACT WATER AREAS (BINARY RASTER)
+# ==========================================
+print("Extracting potential water areas (NDWI &gt; 0)...")
+# Creates a binary raster where 1 = Water, 0 = Non-Water
+water_ndwi = ndwi_final &gt; 0
+water_ndwi.save("Water_NDWI.tif")
+
+# ==========================================
+# 5. CONVERT KML TO SHAPEFILE (LOCK BYPASS)
+# ==========================================
+print("Preparing mask geometry...")
+kml_file = os.path.join(base_dir, "<span class="highlight-red">SagarAOI.kml</span>")
+kml_gdb_name = "SagarAOI_Layer"
+mask_feature = ""
+
+try:
+    arcpy.conversion.KMLToLayer(kml_file, base_dir, kml_gdb_name)
+    gdb_path = os.path.join(base_dir, f"{kml_gdb_name}.gdb")
+    
+    kml_fc = None
+    for dirpath, dirnames, filenames in arcpy.da.Walk(gdb_path, datatype="FeatureClass"):
+        for filename in filenames:
+            kml_fc = os.path.join(dirpath, filename)
+            break
+        if kml_fc:
+            break
+            
+    if not kml_fc:
+        raise ValueError("No geometry found.")
+    
+    desc = arcpy.Describe(kml_fc)
+    new_shp_name = "SagarAOI_Mask.shp"
+    out_shp_path = os.path.join(base_dir, new_shp_name)
+    
+    if desc.shapeType == "Polygon":
+        arcpy.conversion.FeatureClassToFeatureClass(kml_fc, base_dir, new_shp_name)
+    elif desc.shapeType == "Polyline":
+        arcpy.management.FeatureToPolygon(kml_fc, out_shp_path)
+    else:
+        arcpy.conversion.FeatureClassToFeatureClass(kml_fc, base_dir, new_shp_name)
+    
+    mask_feature = out_shp_path
+    print(f"--&gt; Successfully created new mask: {mask_feature}")
+
+except Exception as e:
+    print(f"⚠️ KML to Shapefile conversion failed: {e}")
+    # Final fallback if KML fails
+    mask_feature = os.path.join(base_dir, "sagar_polygon.shp")
+
+# ==========================================
+# 6. FINAL CLIP (EXTRACT BY MASK)
+# ==========================================
+print("Clipping binary water raster to study area...")
+final_output = ""
+
+try:
+    # We clip the binary Water_NDWI, not the raw NDWI_Final, as per the doc
+    final_clipped = ExtractByMask(water_ndwi, mask_feature)
+    final_output = os.path.join(base_dir, "Water_NDWI_StudyArea.tif")
+    final_clipped.save(final_output)
+    print("--&gt; Clipping successful!")
+    
+except Exception as e:
+    print(f"⚠️ Clipping failed: {e}")
+
+# ==========================================
+# 7. ADD TO MAP &amp; AUTOSAVE PROJECT
+# ==========================================
+print("Adding final results to map and saving project...")
+try:
+    aprx = arcpy.mp.ArcGISProject("CURRENT")
+    active_map = aprx.activeMap
+
+    if active_map:
+        active_map.addDataFromPath(os.path.join(base_dir, "NDWI_Final.tif"))
+        if final_output:
+            active_map.addDataFromPath(final_output)
+
+    aprx.save()
+except Exception as e:
+    print("--&gt; Notice: Could not add to map/autosave.")
+
+print("✅ Complete! All NDWI.docx logic applied.")</code></pre>
+        </div>
+    </div>
+
+    <!-- BandComposites.py Tab -->
+    <div id="BandComposites" class="tabcontent">
+        <div class="guide-panel">
+            <h3>Configuration Guide</h3>
+            <p><strong>Action Required:</strong> Before running this code, you must update the <span class="highlight-red">yellow highlighted</span> parts to match your local machine.</p>
+            <ul>
+                <li>Change the path for <code>arcpy.env.workspace</code> to the folder where your unzipped Landsat TIFs are currently stored.</li>
+                <li>Change the <code>output_folder</code> path to the directory where you want the final composite images to be saved.</li>
+                <li>Verify if the <code>prefix</code> matches the exact prefix of your own Landsat files.</li>
+            </ul>
+            <button class="explain-btn" onclick="openExplain('BandComposites', this)">Detailed explanation</button>
+        </div>
+        <div class="code-wrapper">
+            <button class="copy-btn" onclick="copyCode('code-bandcomposites', this)">Copy Code</button>
+            <pre><code id="code-bandcomposites">import arcpy
+import os
+import re
+import sys
+
+# Set your workspace where the unzipped Landsat TIFs are located
+arcpy.env.workspace = r"<span class="highlight-red">D:\Geoinformatics\composite band files</span>" 
+output_folder = r"<span class="highlight-red">D:\Geoinformatics\test\Output</span>"
+
+# Ensure output directory exists
+if not os.path.exists(output_folder):
+    os.makedirs(output_folder)
+
+# Define the specific scene prefix
+prefix = "<span class="highlight-red">LC09_L2SP_145043_20251225_20251227_02_T1</span>"
+
+# 1. AUTOMATICALLY DETECT AVAILABLE BANDS
+available_bands = {}
+for file in os.listdir(arcpy.env.workspace):
+    if file.startswith(prefix) and file.upper().endswith(".TIF"):
+        match = re.search(r'_SR_B(\d+)', file, re.IGNORECASE)
+        if match:
+            band_num = int(match.group(1))
+            if 1 &lt;= band_num &lt;= 7:
+                available_bands[band_num] = file
+
+if not available_bands:
+    print("🚨 No bands found for this prefix. Check your folder path and prefix.")
+    sys.exit()
+
+# Sort to ensure consistent order for the master composite
+sorted_band_nums = sorted(available_bands.keys())
+print(f"Detected bands: {sorted_band_nums}")
+
+# 2. DEFINE DESIRED COMBINATIONS (Strict RGB Order)
+combinations = {
+    "TCC_432": [4, 3, 2],
+    "Veg_FCC_543": [5, 4, 3],
+    "VegMoist_654": [6, 5, 4],
+    "Geology_764": [7, 6, 4],
+    "VegSoil_753": [7, 5, 3],
+    "MoistVeg_652": [6, 5, 2],
+    "GeoSoil_752": [7, 5, 2],
+    "VegMoistContrast_562": [5, 6, 2]
+}
+
+print("\n--- Phase 1: Generating specific 3-band TIF files ---")
+
+# 3. GENERATE PHYSICAL 3-BAND FILES AND RENAME BANDS
+for name, bands in combinations.items():
+    if all(b in available_bands for b in bands):
+        
+        in_rasters = [os.path.join(arcpy.env.workspace, available_bands[b]) for b in bands]
+        in_rasters_str = ";".join(in_rasters)
+        out_raster = os.path.join(output_folder, f"{prefix}_{name}.tif")
+        
+        if not os.path.exists(out_raster):
+            print(f"Creating {name}...")
+            
+            # Run CompositeBands
+            arcpy.management.CompositeBands(in_rasters_str, out_raster)
+            
+            # Rename internal bands to avoid UI confusion and collision bugs
+            rast_obj = arcpy.Raster(out_raster)
+            for i, b_num in enumerate(bands):
+                default_name = f"Band_{i+1}"
+                target_name = f"L9_Band_{b_num}" 
+                try:
+                    rast_obj.renameBand(default_name, target_name)
+                except Exception as e:
+                    print(f"   ⚠️ Could not rename {default_name} to {target_name}: {e}")
+            
+            # Calculate statistics for perfect immediate contrast
+            arcpy.management.CalculateStatistics(out_raster)
+            print(f"✅ Saved: {out_raster}")
+            
+        else:
+            print(f"⚠️ File already exists, skipping: {out_raster}")
+    else:
+        print(f"❌ Skipped {name}: Missing one or more required bands {bands}")
+
+
+print("\n--- Phase 2: Generating the Master Dynamic Composite ---")
+
+# 4. GENERATE THE MASTER ALL-BAND COMPOSITE
+master_out_raster = os.path.join(output_folder, f"{prefix}_DynamicComposite.tif")
+
+if not os.path.exists(master_out_raster):
+    print("Creating Master Dynamic Composite (All available bands)...")
+    
+    # Construct input string using all detected bands in numerical order
+    master_in_rasters = [os.path.join(arcpy.env.workspace, available_bands[b]) for b in sorted_band_nums]
+    master_in_rasters_str = ";".join(master_in_rasters)
+    
+    # Run CompositeBands for the master file
+    arcpy.management.CompositeBands(master_in_rasters_str, master_out_raster)
+    
+    # Rename internal bands for the master file
+    master_rast_obj = arcpy.Raster(master_out_raster)
+    for i, b_num in enumerate(sorted_band_nums):
+        default_name = f"Band_{i+1}"
+        target_name = f"L9_Band_{b_num}" 
+        try:
+            master_rast_obj.renameBand(default_name, target_name)
+        except Exception as e:
+            print(f"   ⚠️ Could not rename {default_name} to {target_name}: {e}")
+            
+    # Calculate statistics
+    arcpy.management.CalculateStatistics(master_out_raster)
+    print(f"✅ Saved Master Composite: {master_out_raster}")
+else:
+    print(f"⚠️ Master file already exists, skipping: {master_out_raster}")
+
+print("\nWorkflow completely finished! All specific composites and your master file are ready.")</code></pre>
+        </div>
+    </div>
+
+
+    <!-- Watershed.py Tab -->
+    <div id="Watershed" class="tabcontent">
+        <div class="guide-panel">
+            <h3>Configuration Guide</h3>
+            <p><strong>Action Required:</strong> Before running this code, update the <span class="highlight-red">yellow highlighted</span> paths.</p>
+            <ul>
+                <li>Change <code>input_dem</code> to your DEM file (the current one is an SRTM 1 arc-second tile, processed in UTM 44N).</li>
+                <li>Change <code>output_root</code> to the folder where results should be saved. Each run creates its own timestamped sub-folder containing <code>outputs</code>, <code>run.log</code> and <code>Watershed_Results.lyrx</code>.</li>
+                <li>Check that <code>propy</code> points to your ArcGIS Pro <code>propy.bat</code> launcher (the default install path is already set).</li>
+                <li><strong>Before running:</strong> open the 2D map that should receive the results and make it the active map tab. Save your work first. The project is not saved automatically.</li>
+                <li><em>Tip:</em> <code>threshold</code> of 50,000 cells gives only major streams. Lower it (for example 5,000) for more tributaries and sub-basins. <code>show_rasters</code> controls whether the watershed rasters are included.</li>
+                <li>Paste the whole script into the ArcGIS Pro Python window. Processing runs in a separate Python process and takes about 1-2 minutes; five layers are then added to the active map. If map insertion fails, add <code>Watershed_Results.lyrx</code> manually with Add Data.</li>
+            </ul>
+            <button class="explain-btn" onclick="openExplain('Watershed', this)">Detailed explanation</button>
+        </div>
+        <div class="code-wrapper">
+            <button class="copy-btn" onclick="copyCode('code-watershed', this)">Copy Code</button>
+            <pre><code id="code-watershed"># Paste this ENTIRE file into ArcGIS Pro &gt; Analysis &gt; Python Window.
+# Open the map you want to receive the results BEFORE running. Save your work.
+# Self-contained: no earlier watershed helper scripts are required.
+# Processing runs in Pro's separate Python; results go into THIS active map.
+# The Python window waits for completion (normally about 1-2 minutes).
+# No new project is created and the open project is not automatically saved.
+# Live map insertion can still encounter an ArcGIS native bug; GUI verification
+# is required. Outputs and a ready-to-add .lyrx file survive such a failure.
+
+WATERSHED_WORKER_SOURCE = r'''
+import datetime as dt
+import json
+from pathlib import Path
+import sys
+import arcpy as ap
+from arcpy.sa import (Con, Fill, FlowAccumulation, FlowDirection,
+                      StreamLink, StreamOrder, StreamToFeature, Watershed)
+
+def log(message):
+    print(f'[{dt.datetime.now().isoformat(timespec="seconds")}] {message}', flush=True)
+
+def raster(value, path):
+    value.save(str(path))
+    return str(path)
+
+def process(config):
+    run = Path(config['run_dir'])
+    out = run / 'outputs'
+    scratch = run / 'scratch'
+    out.mkdir()
+    scratch.mkdir()
+    if not ap.Exists(config['input_dem']):
+        raise FileNotFoundError(config['input_dem'])
+    if ap.Describe(config['input_dem']).spatialReference.name == 'Unknown':
+        raise ValueError('The DEM must have a known coordinate system.')
+    if ap.CheckExtension('Spatial') != 'Available':
+        raise RuntimeError('Spatial Analyst is unavailable.')
+    if ap.ProductInfo() not in ('ArcInfo', 'ArcEditor'):
+        raise RuntimeError('SmoothLine requires a Standard or Advanced license.')
+    if ap.CheckOutExtension('Spatial') != 'CheckedOut':
+        raise RuntimeError('Could not check out Spatial Analyst.')
+    # Deliberately no CheckInExtension: that call crashes on this installation.
+    # Esri returns the license when this SHORT-LIVED standalone worker ends.
+    # Do not paste/run this worker directly in the long-lived Pro Python window.
+    with ap.EnvManager(workspace=str(out), scratchWorkspace=str(scratch),
+                       overwriteOutput=False, addOutputsToMap=False,
+                       parallelProcessingFactor='50%', compression='LZW'):
+        log('1/13 Projecting DEM to UTM 44N')
+        projected = str(out / 'DEM_UTM44N.tif')
+        ap.management.ProjectRaster(config['input_dem'], projected,
+                                    ap.SpatialReference(32644), 'NEAREST')
+        with ap.EnvManager(snapRaster=projected, cellSize=projected,
+                           extent=projected, outputCoordinateSystem=ap.SpatialReference(32644)):
+            log('2/13 Filling sinks')
+            filled = raster(Fill(projected), scratch / 'Filled_DEM.tif')
+            log('3/13 Flow Direction (D8)')
+            direction = raster(FlowDirection(filled, force_flow='NORMAL',
+                                             flow_direction_type='D8'),
+                               scratch / 'Flow_Direction.tif')
+            log('4/13 Flow Accumulation')
+            accumulation = raster(FlowAccumulation(direction, data_type='FLOAT',
+                                                   flow_direction_type='D8'),
+                                  scratch / 'Flow_Accumulation.tif')
+            maximum = float(ap.management.GetRasterProperties(accumulation, 'MAXIMUM')[0])
+            if maximum &lt;= config['threshold']:
+                raise ValueError('Threshold is too high: no stream cells would be extracted.')
+            log('5/13 Extracting stream network')
+            streams = raster(Con(ap.Raster(accumulation) &gt; config['threshold'], 1),
+                             scratch / 'Streams.tif')
+            log('6/13 Strahler stream order')
+            order = raster(StreamOrder(streams, direction, 'STRAHLER'),
+                           scratch / 'Stream_Order.tif')
+            log('7/13 Converting streams to features')
+            raw = str(out / 'Stream_Network_Raw.shp')
+            StreamToFeature(order, direction, raw, 'NO_SIMPLIFY')
+            log('8/13 Smoothing stream lines')
+            smooth = str(out / 'Stream_Network_Smoothed.shp')
+            ap.cartography.SmoothLine(raw, smooth, 'PAEK', config['smoothing'])
+            log('9/13 Stream links')
+            links = raster(StreamLink(streams, direction), scratch / 'Stream_Links.tif')
+            log('10/13 Tributary sub-basins')
+            sub_raster = raster(Watershed(direction, links), out / 'Sub_Basins_Ras.tif')
+            sub_vector = str(out / 'Sub_Basins.shp')
+            ap.conversion.RasterToPolygon(sub_raster, sub_vector, 'NO_SIMPLIFY', 'Value')
+            log(f'11/13 Maximum-flow outlet: {maximum}')
+            outlet = raster(Con(ap.Raster(accumulation) == maximum, 1), scratch / 'Pour_Point.tif')
+            log('12/13 Main watershed')
+            main_raster = raster(Watershed(direction, outlet), out / 'Main_Watershed.tif')
+            main_vector = str(out / 'Main_Basin.shp')
+            ap.conversion.RasterToPolygon(main_raster, main_vector, 'SIMPLIFY', 'Value')
+            log('13/13 Clipping sub-basins and streams')
+            ap.analysis.Clip(sub_vector, main_vector, str(out / 'Clipped_Sub_Basins.shp'))
+            ap.analysis.Clip(smooth, main_vector, str(out / 'Clipped_Streams.shp'))
+    counts = {name: int(ap.management.GetCount(str(out / name))[0]) for name in
+              ('Main_Basin.shp', 'Clipped_Sub_Basins.shp', 'Clipped_Streams.shp')}
+    if not all(counts.values()):
+        raise RuntimeError(f'Unexpected empty output: {counts}')
+    (run / 'processing.json').write_text(json.dumps(counts, indent=2), encoding='utf-8')
+    log('Processing saved; worker exiting normally to release its license.')
+
+def prepare_layers(config):
+    run = Path(config['run_dir'])
+    folder = run / 'layers'
+    folder.mkdir()
+    specifications = [
+        ('Main_Watershed.tif', 'Main Watershed (Raster)', None, 50),
+        ('Sub_Basins_Ras.tif', 'Sub-Basin Watersheds (Raster)', None, 40),
+        ('Main_Basin.shp', 'Main Watershed Boundary', None, 0),
+        ('Clipped_Sub_Basins.shp', 'Tributary Sub-Basins', 'gridcode', 40),
+        ('Clipped_Streams.shp', 'Stream Network', 'grid_code', 0),
+    ]
+    bundle = None
+    with ap.EnvManager(addOutputsToMap=False, overwriteOutput=False):
+        for index, (name, title, field, transparency) in enumerate(specifications):
+            log(f'Preparing saved layer: {title}')
+            source = str(run / 'outputs' / name)
+            temporary = f'watershed_layer_{index}'
+            is_raster = name.endswith('.tif')
+            make = ap.management.MakeRasterLayer if is_raster else ap.management.MakeFeatureLayer
+            result = make(source, temporary)
+            path = folder / (Path(name).stem + '.lyrx')
+            ap.management.SaveToLayerFile(result.getOutput(0), str(path), 'ABSOLUTE')
+            layer_file = ap.mp.LayerFile(str(path))
+            layer = layer_file.listLayers()[0]
+            layer.name = title
+            layer.transparency = transparency
+            if is_raster:
+                layer.visible = config['show_rasters']
+            else:
+                sym = layer.symbology
+                if field:
+                    if field not in {f.name for f in ap.ListFields(source)}:
+                        raise ValueError(f'Missing field {field} in {source}')
+                    sym.updateRenderer('UniqueValueRenderer')
+                    sym.renderer.fields = [field]
+                else:
+                    sym.updateRenderer('SimpleRenderer')
+                    sym.renderer.symbol.color = {'RGB': [0, 0, 0, 0]}
+                    sym.renderer.symbol.outlineColor = {'RGB': [0, 0, 0, 100]}
+                    sym.renderer.symbol.outlineWidth = 1.5
+                layer.symbology = sym
+            layer_file.save()
+            if bundle is None:
+                bundle = layer_file
+            else:
+                bundle.addLayer(layer_file, 'TOP')
+            ap.management.Delete(temporary)
+        bundle_path = run / 'Watershed_Results.lyrx'
+        bundle.saveACopy(str(bundle_path))
+        check = ap.mp.LayerFile(str(bundle_path))
+        if len(check.listLayers()) != 5 or check.listBrokenDataSources():
+            raise RuntimeError('Saved layer collection is incomplete or has broken sources.')
+    (run / 'layers.json').write_text(json.dumps({'layer_file': str(bundle_path)}, indent=2),
+                                    encoding='utf-8')
+    log('Five styled layers prepared without opening or creating a project.')
+
+if __name__ == '__main__':
+    config = json.loads(Path(sys.argv[2]).read_text(encoding='utf-8'))
+    log(f'ArcGIS Python: {sys.executable}')
+    try:
+        if sys.argv[1] == 'process':
+            process(config)
+        elif sys.argv[1] == 'layers':
+            prepare_layers(config)
+        else:
+            raise ValueError('Unknown worker phase.')
+    except Exception:
+        import traceback
+        traceback.print_exc()
+        print(ap.GetMessages(2), flush=True)
+        sys.exit(1)
+'''
+
+
+def watershed_in_current_project():
+    import datetime as dt
+    import json
+    import math
+    import os
+    from pathlib import Path
+    import subprocess
+    import uuid
+    import arcpy as ap
+
+    # EDIT THESE SETTINGS IF NEEDED. UTM 44N is retained for this supplied DEM.
+    input_dem = Path(r'<span class="highlight-red">C:\Users\sachi\OneDrive\Desktop\check\Test_Data\input\n24_e079_1arc_v3.tif</span>')
+    output_root = Path(r'<span class="highlight-red">C:\Users\sachi\OneDrive\Desktop\check\Test_Data\current_project_runs</span>')
+    threshold = 50000
+    smoothing = '90 Meters'
+    show_rasters = True
+    propy = Path(r'C:\Program Files\ArcGIS\Pro\bin\Python\Scripts\propy.bat')
+
+    # Capture the actual current project/map; no hardcoded APRX or project copy.
+    project = ap.mp.ArcGISProject('CURRENT')
+    target = project.activeMap
+    if target is None:
+        raise RuntimeError('Open the destination map tab, then paste/run this code again.')
+    if target.mapType != 'MAP':
+        raise RuntimeError('Open a 2D map, not a 3D scene, before running this workflow.')
+    if not input_dem.is_file():
+        raise FileNotFoundError(f'Input DEM not found: {input_dem}')
+    if not propy.is_file():
+        raise FileNotFoundError(f'ArcGIS Python launcher not found: {propy}')
+    if not math.isfinite(float(threshold)) or threshold &lt;= 0:
+        raise ValueError('Threshold must be positive and finite.')
+
+    run = output_root / (dt.datetime.now().strftime('%Y%m%d_%H%M%S')
+                         + '_' + uuid.uuid4().hex[:8])
+    run.mkdir(parents=True)
+    worker = run / 'worker.py'
+    worker.write_text(WATERSHED_WORKER_SOURCE, encoding='utf-8')
+    config_path = run / 'job.json'
+    config_path.write_text(json.dumps({
+        'run_dir': str(run), 'input_dem': str(input_dem), 'threshold': threshold,
+        'smoothing': smoothing, 'show_rasters': show_rasters,
+        'current_project': project.filePath, 'current_map': target.name,
+    }, indent=2), encoding='utf-8')
+    status = {'state': 'running', 'project': project.filePath,
+              'map': target.name, 'run_dir': str(run), 'phases': {}}
+
+    def write_status():
+        temporary = run / 'status.tmp'
+        temporary.write_text(json.dumps(status, indent=2), encoding='utf-8')
+        temporary.replace(run / 'status.json')
+
+    environment = os.environ.copy()
+    for key in ('PYTHONHOME', 'PYTHONPATH'):
+        environment.pop(key, None)
+    environment['PYTHONUTF8'] = '1'
+    environment['PYTHONUNBUFFERED'] = '1'
+    command_shell = os.environ.get('COMSPEC', r'C:\Windows\System32\cmd.exe')
+    write_status()
+    print(f'Running watershed for CURRENT map: {target.name}', flush=True)
+    print(f'Outputs and log: {run}', flush=True)
+    print('Please wait. Processing is isolated; the Python window remains busy.', flush=True)
+    try:
+        with (run / 'run.log').open('w', encoding='utf-8', buffering=1) as log_file:
+            for phase in ('process', 'layers'):
+                status['phase'] = phase
+                write_status()
+                # Raw cmd command line avoids incorrect list2cmdline escaping
+                # of the nested quotes around the installed propy.bat path.
+                command = f'"{command_shell}" /d /s /c ""{propy}" -u "{worker}" {phase} "{config_path}""'
+                with subprocess.Popen(command, cwd=str(run), env=environment,
+                                      stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                                      stderr=subprocess.STDOUT, text=True,
+                                      encoding='utf-8', errors='replace',
+                                      creationflags=subprocess.CREATE_NO_WINDOW) as child:
+                    for line in child.stdout:
+                        log_file.write(line)
+                        print(line.rstrip(), flush=True)
+                    code = child.wait()
+                status['phases'][phase] = {'exit_code': code,
+                                           'exit_hex': f'0x{code &amp; 0xffffffff:08X}'}
+                if code != 0:
+                    raise RuntimeError(f'{phase} worker failed (0x{code &amp; 0xffffffff:08X}). '
+                                       f'See {run / "run.log"}')
+                manifest = run / ('processing.json' if phase == 'process' else 'layers.json')
+                if not manifest.is_file():
+                    raise RuntimeError(f'{phase} worker did not produce its completion manifest.')
+
+            # Only now touch the live map, after both child processes exited.
+            # Styles were saved OFFLINE; no live renderer/gallery updates.
+            status['phase'] = 'adding_to_current_map'
+            write_status()
+            message = f'BEFORE adding prepared layers to CURRENT map: {target.name}'
+            log_file.write(message + '\n')
+            print(message, flush=True)
+            layer_file = ap.mp.LayerFile(str(run / 'Watershed_Results.lyrx'))
+            if len(layer_file.listLayers()) != 5 or layer_file.listBrokenDataSources():
+                raise RuntimeError('Prepared layer file is incomplete or has broken sources.')
+            with ap.EnvManager(addOutputsToMap=False):
+                added = target.addLayer(layer_file, 'TOP')
+            status['added_layers'] = [layer.name for layer in added]
+            if len(added) != 5 or any(layer.isBroken for layer in added):
+                raise RuntimeError('Not all five result layers were added correctly.')
+            log_file.write('AFTER adding five prepared layers to CURRENT map\n')
+        status['state'] = 'succeeded'
+        status['project_saved'] = False
+        write_status()
+        print(f'DONE: five layers added to your existing map "{target.name}".', flush=True)
+        print('Press Ctrl+S to save this same project when ready.', flush=True)
+        print(f'Outputs: {run / "outputs"}', flush=True)
+        return str(run)
+    except Exception as error:
+        status['state'] = 'failed'
+        status['error'] = str(error)
+        write_status()
+        print(f'FAILED: {error}', flush=True)
+        print(f'Saved outputs/logs remain in: {run}', flush=True)
+        print('If layers were prepared, use Add Data with Watershed_Results.lyrx.', flush=True)
+        raise
+
+
+watershed_run_folder = watershed_in_current_project()</code></pre>
+        </div>
+    </div>
+
+    </div>
+
+    <div class="overlay" id="overlay"></div>
+    <aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="drawerTitle">
+        <div class="drawer-head">
+            <div class="drawer-top">
+                <h3 id="drawerTitle"></h3>
+                <button class="icon-btn" id="closeBtn" onclick="closeExplain()" aria-label="Close explanation">&times;</button>
+            </div>
+            <p id="drawerIntro"></p>
+            <div class="toolbar">
+                <button class="chip-btn" onclick="toggleAll(true)">Expand all</button>
+                <button class="chip-btn" onclick="toggleAll(false)">Collapse all</button>
+            </div>
+        </div>
+        <div class="drawer-body" id="drawerBody"></div>
+    </aside>
+
+    <!-- JavaScript for Tab switching and Copy logic -->
+    <script>
+        function openTab(evt, tabName) {
+            // Hide all tab content
+            var tabcontent = document.getElementsByClassName("tabcontent");
+            for (var i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = "none";
+            }
+
+            // Remove 'active' class from all buttons
+            var tablinks = document.getElementsByClassName("tablinks");
+            for (var i = 0; i < tablinks.length; i++) {
+                tablinks[i].className = tablinks[i].className.replace(" active", "");
+            }
+
+            // Show the current tab using flex, and add an "active" class to the button
+            document.getElementById(tabName).style.display = "flex";
+            evt.currentTarget.className += " active";
+        }
+
+        function copyCode(elementId, btnElement) {
+            // Get the text from the code block (this safely ignores the span tags)
+            var codeText = document.getElementById(elementId).innerText;
+            
+            // Use modern Clipboard API
+            navigator.clipboard.writeText(codeText).then(function() {
+                // Change button text temporarily to indicate success
+                var originalText = btnElement.innerText;
+                btnElement.innerText = "Copied!";
+                btnElement.classList.add("copied");
+                
+                setTimeout(function() {
+                    btnElement.innerText = originalText;
+                    btnElement.classList.remove("copied");
+                }, 2000);
+            }).catch(function(err) {
+                console.error("Could not copy text: ", err);
+                alert("Failed to copy code.");
+            });
+        }
+    </script>
+    <script>
+        const EXPLAIN = {
+        NDVI: {
+          title: "NDVI.py: how it works",
+          intro: "This script mosaics Landsat Band 4 (Red) and Band 5 (NIR) across all tiles, calculates the Normalized Difference Vegetation Index (NDVI) directly from the raw bands, clips it to your area (Sagar) and adds it to ArcGIS Pro.",
+          steps: [
+            ["Set up and clear the cache", "Prepares licences, settings and the working folder.", [
+              ["import arcpy, os / from arcpy.sa import *", "Loads ArcGIS's Python library, Python's file-path tools and the Spatial Analyst tools (Raster, Float, ExtractByMask)."],
+              ["arcpy.CheckOutExtension(\"Spatial\")", "Switches on the Spatial Analyst licence needed for map algebra and masking."],
+              ["arcpy.env.overwriteOutput = True", "Lets you re-run the script without errors about files that already exist."],
+              ["arcpy.ClearWorkspaceCache_management()", "Releases cached connections and locks so files from earlier runs do not block new ones."],
+              ["base_dir = r\"...\"", "Your folder of Landsat band files. The r before the quote makes it a raw string so backslashes in Windows paths are read correctly."],
+              ["arcpy.env.workspace = base_dir", "Makes base_dir the default location for reading and saving files."]
+            ]],
+            ["Mosaic Band 4 and Band 5", "Landsat splits the area into tiles. Band 4 (Red) and Band 5 (NIR) of every tile are merged into one raster each.", [
+              ["arcpy.ListRasters(\"LC*_B4*\", \"TIF\")", "Finds every TIF whose name starts with LC and contains _B4. The * is a wildcard for any characters. Unrelated files that match the pattern would be included too."],
+              ["arcpy.ListRasters(\"LC*_B5*\", \"TIF\")", "The same search for Band 5 files."],
+              ["arcpy.management.MosaicToNewRaster(", "Stitches several rasters into a brand new one. It runs twice: once for Band 4 and once for Band 5."],
+              ["input_rasters=b4_list", "The list of tiles to merge."],
+              ["output_location / raster_dataset_name_with_extension", "Where to save the result and its name (Simple_B4.tif and Simple_B5.tif)."],
+              ["pixel_type=\"16_BIT_UNSIGNED\"", "Landsat values are whole numbers from 0 to 65535, so this type stores them without loss."],
+              ["number_of_bands=1", "Each input holds one band, so the output has one band. No mosaic method is given, so ArcGIS uses its default (LAST) in overlap zones."]
+            ]],
+            ["Calculate the index directly", "Applies the normalized difference formula to the mosaics without any other correction.", [
+              ["b4 = Raster(\"Simple_B4.tif\")", "Opens the Red mosaic as a raster object so it can be used in maths. b5 does the same for NIR."],
+              ["Float(b5) - Float(b4)", "Float() converts whole numbers to decimals so the division is not rounded down to integers."],
+              ["(Float(b5) - Float(b4)) / (Float(b5) + Float(b4))", "(NIR - Red) / (NIR + Red). Vegetation reflects NIR and absorbs Red, so healthy vegetation gives positive values."],
+              ["No scale factor or SetNull", "This version works on raw digital numbers. It does not apply the Landsat scale factor (0.0000275, -0.2) or remove empty border pixels, which is why it is called simple. The result is only held in memory until it is saved in step 5."]
+            ]],
+            ["Convert KML to a shapefile", "Builds a polygon mask from your boundary file, with error handling in case something fails.", [
+              ["kml_file = os.path.join(base_dir, \"SagarAOI.kml\")", "Builds the full path to your KML. os.path.join adds the correct slashes."],
+              ["try: ... except Exception as e:", "Runs the conversion and, if anything fails, prints a warning instead of crashing the whole script."],
+              ["arcpy.conversion.KMLToLayer(...)", "Converts the KML into a file geodatabase called SagarAOI_Layer.gdb."],
+              ["arcpy.da.Walk(gdb_path, datatype=\"FeatureClass\")", "Searches the geodatabase for the first feature class whatever its name or type, which is more flexible than hardcoding a path."],
+              ["raise ValueError(\"No geometry found...\")", "Stops with an error if the KML contained no usable shapes."],
+              ["desc = arcpy.Describe(kml_fc)", "Reads the properties of the feature class, including whether it is Polygon or Polyline."],
+              ["if desc.shapeType == \"Polygon\": ... elif \"Polyline\": ...", "Polygons are exported to SagarAOI_Mask.shp as they are. Lines are closed into a polygon with FeatureToPolygon. Any other type is exported directly."],
+              ["mask_feature = out_shp_path", "Remembers the finished mask for the clip step."],
+              ["mask_feature = ... \"sagar_polygon.shp\"", "Fallback in the except block: uses a shapefile you prepared yourself, if one exists in the folder."]
+            ]],
+            ["Clip and save with a failsafe", "Cuts the result to your area, and still saves something if clipping fails.", [
+              ["ExtractByMask(ndvi, mask_feature)", "Keeps only pixels inside the mask polygon."],
+              ["ndvi_clipped.save(final_output)", "Saves the clipped raster as Simple_NDVI_Final.tif."],
+              ["except Exception as e: ...", "If clipping fails (for example the mask is missing), the script does not stop."],
+              ["ndvi.save(\"Simple_NDVI_Unclipped.tif\")", "Failsafe: saves the full unclipped raster so you still keep your data."]
+            ]],
+            ["Add to the map and autosave", "Shows the result in ArcGIS Pro automatically.", [
+              ["arcpy.mp.ArcGISProject(\"CURRENT\")", "Connects to the ArcGIS Pro project you are working in. This only works when the script runs inside ArcGIS Pro."],
+              ["aprx.activeMap", "The map that is currently open and in focus."],
+              ["active_map.addDataFromPath(final_output)", "Adds the saved raster to the map as a new layer."],
+              ["aprx.save()", "Saves the project so the new layer is kept."],
+              ["except: print(\"--> Notice...\")", "If you run outside ArcGIS Pro, this only prints a notice. Your output files are still created."]
+            ]]
+          ]
+        },
+        NDWI: {
+          title: "NDWI.py: how it works",
+          intro: "NDWI (Normalized Difference Water Index) highlights open water. This script mosaics the Green and NIR bands, calculates NDWI, marks pixels that are likely water, then clips to your area and adds the results to your ArcGIS Pro map.",
+          steps: [
+            ["Set up and clear the cache", "Prepares licences, settings and the working folder.", [
+              ["arcpy.CheckOutExtension(\"Spatial\")", "Enables Spatial Analyst tools."],
+              ["arcpy.env.overwriteOutput = True", "Allows files to be replaced on re-runs."],
+              ["arcpy.ClearWorkspaceCache_management()", "Releases cached connections and locks so old files from earlier runs do not block new ones."],
+              ["base_dir = r\"...\"", "Your folder of Landsat band files. It is also set as the workspace on the next line."],
+              ["arcpy.env.workspace = base_dir", "Makes base_dir the default location for reading and saving."]
+            ]],
+            ["Mosaic Band 3 and Band 5", "Band 3 is Green and Band 5 is NIR. Both are merged across all tiles.", [
+              ["arcpy.ListRasters(\"LC*_B3*\", \"TIF\")", "Finds all TIF files whose names start with LC and contain _B3. The * is a wildcard for any characters. No list typing is needed, but unrelated files that match will be included too."],
+              ["arcpy.ListRasters(\"LC*_B5*\", \"TIF\")", "The same search for Band 5 files."],
+              ["MosaicToNewRaster(... \"B3_Mosaic.tif\" ...)", "Joins all Band 3 tiles into one raster. Pixel type is 16-bit unsigned, 1 band."],
+              ["mosaic_method=\"LAST\"", "In overlap zones the last raster in the list provides the pixel value."],
+              ["mosaic_colormap_mode=\"FIRST\"", "Uses the first raster's colour map. Band 5 is mosaicked in the same way into B5_Mosaic.tif."]
+            ]],
+            ["Calculate NDWI", "Converts to reflectance, then applies the water index formula.", [
+              ["b3 = Raster(\"B3_Mosaic.tif\")", "Loads the mosaicked Green band. b5 loads the NIR band."],
+              ["Float(b3) * 0.0000275 - 0.2", "Float() turns integers into decimals so the maths stays accurate. Then the official Landsat scale factor converts to reflectance."],
+              ["invalid_mask = (b3_scaled <= 0) | (b5_scaled <= 0)", "Flags pixels where either band is zero or negative. These are empty or invalid areas."],
+              ["ndwi_math = (b3_scaled - b5_scaled) / (b3_scaled + b5_scaled)", "NDWI = (Green - NIR) / (Green + NIR). Water reflects green and absorbs NIR, so water gives positive values."],
+              ["SetNull(invalid_mask, ndwi_math)", "Turns flagged pixels into NoData so they do not affect results."],
+              ["ndwi_final.save(\"NDWI_Final.tif\")", "Saves the continuous NDWI raster."]
+            ]],
+            ["Extract water areas", "Turns the continuous index into a simple water or not-water map.", [
+              ["water_ndwi = ndwi_final > 0", "Creates a binary raster: 1 where NDWI is above 0 (likely water) and 0 elsewhere."],
+              ["water_ndwi.save(\"Water_NDWI.tif\")", "Saves the binary water map."]
+            ]],
+            ["Convert KML to a mask", "Builds a polygon shapefile from your boundary. It includes error handling in case something fails.", [
+              ["try: ... except Exception as e:", "Runs the conversion and, if anything fails, prints a warning instead of crashing the whole script."],
+              ["arcpy.conversion.KMLToLayer(...)", "Converts the KML into a geodatabase called SagarAOI_Layer.gdb."],
+              ["arcpy.da.Walk(gdb_path, datatype=\"FeatureClass\")", "Searches the geodatabase for the first feature class, whatever it is named. This is more flexible than hardcoding a path."],
+              ["raise ValueError(\"No geometry found.\")", "Stops with an error if the KML contained no usable shapes."],
+              ["desc = arcpy.Describe(kml_fc)", "Reads the properties of the feature class, including whether it is Polygon or Polyline."],
+              ["if desc.shapeType == \"Polygon\": ... elif \"Polyline\": ...", "Polygons are copied to a shapefile as they are. Lines are closed into polygons using FeatureToPolygon. Anything else is copied directly."],
+              ["mask_feature = out_shp_path", "Remembers the finished mask for the clip step."],
+              ["mask_feature = ... \"sagar_polygon.shp\"", "Fallback in the except block: uses a shapefile you prepared yourself, if one exists."]
+            ]],
+            ["Clip the water map", "Cuts the binary water raster to your study area.", [
+              ["ExtractByMask(water_ndwi, mask_feature)", "Keeps only pixels inside the mask polygon. The binary water raster is clipped, not the raw NDWI."],
+              ["final_clipped.save(final_output)", "Saves Water_NDWI_StudyArea.tif."],
+              ["except Exception as e: print(...)", "Prints a warning if clipping fails, for example when the mask file is missing."]
+            ]],
+            ["Add to the map and save", "Shows the results in ArcGIS Pro automatically.", [
+              ["arcpy.mp.ArcGISProject(\"CURRENT\")", "Connects to the ArcGIS Pro project you are working in. This only works when the script runs inside ArcGIS Pro."],
+              ["aprx.activeMap", "The map that is currently open and in focus."],
+              ["active_map.addDataFromPath(...)", "Adds NDWI_Final.tif and the clipped water raster as layers."],
+              ["aprx.save()", "Saves the project so the new layers are kept."],
+              ["except: print(\"--> Notice...\")", "If you run outside ArcGIS Pro, this just prints a notice and moves on. Your output files are still created."]
+            ]]
+          ]
+        },
+        BandComposites: {
+          title: "BandComposites.py: how it works",
+          intro: "BandComposites.py creates colour composites (including false colour composites, FCC). Each composite assigns three Landsat bands to the Red, Green and Blue display channels to reveal vegetation, moisture, geology or soil. The script detects the bands you have, builds eight 3-band images, then builds one multi-band master file.",
+          steps: [
+            ["Set up folders and the scene name", "Defines where the input bands are, where results go and which scene to process.", [
+              ["import arcpy, os, re, sys", "arcpy handles GIS tools, os handles files and folders, re does pattern matching (regular expressions) and sys lets the script exit early."],
+              ["arcpy.env.workspace = r\"...\"", "Folder with your unzipped Landsat TIF files."],
+              ["output_folder = r\"...\"", "Folder where composites will be saved."],
+              ["if not os.path.exists(output_folder): os.makedirs(output_folder)", "Creates the output folder if it does not exist yet."],
+              ["prefix = \"LC09_L2SP_145043_...\"", "The unique scene ID at the start of the file names. Only files starting with it are used, so you can keep many scenes in one folder."]
+            ]],
+            ["Detect available bands", "Looks at your files and works out which bands (1 to 7) are present.", [
+              ["available_bands = {}", "An empty dictionary. It will map band number to file name, for example 4 to the Red file."],
+              ["for file in os.listdir(arcpy.env.workspace):", "Loops through every file in the workspace."],
+              ["file.startswith(prefix) and file.upper().endswith(\".TIF\")", "Keeps only TIFs of your chosen scene. upper() makes the check case-insensitive."],
+              ["re.search(r'_SR_B(\\d+)', file, re.IGNORECASE)", "Finds _SR_B followed by digits in the name. The (\\d+) captures the band number, such as 4 from _SR_B4."],
+              ["band_num = int(match.group(1))", "Converts the captured text to a whole number."],
+              ["if 1 <= band_num <= 7:", "Only the 7 optical and infrared bands are used, which skips thermal and other bands."],
+              ["available_bands[band_num] = file", "Stores the file under its band number."],
+              ["if not available_bands: ... sys.exit()", "If nothing was found, prints a warning (likely a wrong path or prefix) and stops."],
+              ["sorted_band_nums = sorted(available_bands.keys())", "Puts band numbers in order 1, 2, 3... so the master composite is consistent."]
+            ]],
+            ["Define the composites", "A dictionary of recipes. The order in each list is the order of Red, Green, Blue.", [
+              ["\"TCC_432\": [4, 3, 2]", "True colour. Red, Green, Blue bands shown naturally, as your eyes would see it."],
+              ["\"Veg_FCC_543\": [5, 4, 3]", "Classic false colour. NIR shown in red, so healthy vegetation appears bright red."],
+              ["\"VegMoist_654\": [6, 5, 4]", "Uses SWIR 1, NIR and Red to show vegetation together with moisture."],
+              ["\"Geology_764\": [7, 6, 4]", "Uses both SWIR bands and Red to separate rock types and mineral differences."],
+              ["\"VegSoil_753\" / \"MoistVeg_652\" / \"GeoSoil_752\" / \"VegMoistContrast_562\"", "More combinations that highlight vegetation, soil moisture, or give extra contrast for geology and vegetation."]
+            ]],
+            ["Phase 1: build each 3-band composite", "Loops over every recipe and creates a real TIF file.", [
+              ["for name, bands in combinations.items():", "Takes each recipe in turn: name is the label, bands is the list of band numbers."],
+              ["if all(b in available_bands for b in bands):", "Only builds the composite if every band it needs was found. Otherwise it prints a skipped message."],
+              ["in_rasters = [os.path.join(...) for b in bands]", "Creates the full file path of each needed band, in R, G, B order."],
+              ["\";\".join(in_rasters)", "CompositeBands expects the paths as one string separated by semicolons."],
+              ["if not os.path.exists(out_raster):", "Skips work already done, so re-running the script is quick."],
+              ["arcpy.management.CompositeBands(in_rasters_str, out_raster)", "Stacks the three single-band files into one 3-band image."],
+              ["rast_obj.renameBand(default_name, target_name)", "Renames Band_1/2/3 to names like L9_Band_5 so you can see which original band is which. It is wrapped in try/except because renaming can fail on some systems."],
+              ["arcpy.management.CalculateStatistics(out_raster)", "Calculates min, max and mean values so ArcGIS shows the image with good contrast straight away."]
+            ]],
+            ["Phase 2: build the master composite", "Stacks every detected band into one file.", [
+              ["master_out_raster = ...\"_DynamicComposite.tif\"", "Output name for the multi-band file."],
+              ["master_in_rasters = [... for b in sorted_band_nums]", "Collects all detected bands in numerical order."],
+              ["CompositeBands(master_in_rasters_str, master_out_raster)", "Creates one raster that contains all bands. From it you can pick any RGB combination in ArcGIS later."],
+              ["renameBand / CalculateStatistics", "Same renaming and statistics steps as in Phase 1."],
+              ["print(\"Workflow completely finished!...\")", "Final message confirming everything is done."]
+            ]]
+          ]
+        },
+        Watershed: {
+          title: "Watershed.py: how it works",
+          intro: "This script takes a DEM, fills it, works out where water flows, extracts the stream network, and delineates the main watershed and all its tributary sub-basins. Results are saved as shapefiles and as watershed rasters, then added to your ArcGIS Pro map with styling.",
+          steps: [
+            ["Set up paths and environment", "Defines the input DEM, the output folder and the processing settings.", [
+              ["import os, arcpy, gc / from arcpy.sa import *", "Loads file tools, ArcGIS's Python library, the garbage collector and the Spatial Analyst tools (Fill, FlowDirection, Watershed and so on)."],
+              ["workspace_path = r\"...\"", "Folder where every output is saved."],
+              ["in_dem = r\"...\"", "Your input DEM. The r before the quote makes it a raw string so Windows backslashes are read correctly."],
+              ["aprx = arcpy.mp.ArcGISProject(\"CURRENT\")", "Connects to the open ArcGIS Pro project early so it can still be saved if something fails later. Outside ArcGIS Pro it is simply skipped."],
+              ["if not arcpy.Exists(in_dem): raise FileNotFoundError", "Stops immediately with a clear message if the DEM path is wrong."],
+              ["arcpy.env.overwriteOutput = True", "Lets you re-run the script without errors about existing files."],
+              ["arcpy.env.parallelProcessingFactor = \"50%\"", "Uses half of your CPU cores so the computer does not run out of memory."],
+              ["accumulation_threshold = 50000", "A cell becomes a stream when at least this many cells drain into it. Higher gives fewer streams."],
+              ["smoothing_tolerance = \"90 Meters\"", "How strongly the stream lines are smoothed later."]
+            ]],
+            ["Project the DEM (step 1)", "Converts the DEM to a metric coordinate system.", [
+              ["arcpy.SpatialReference(32644)", "UTM Zone 44N (EPSG 32644), which uses metres. The original DEM is in degrees, which is not suitable for distance and area work."],
+              ["arcpy.management.ProjectRaster(...)", "Creates DEM_UTM44N.tif in the new projection."]
+            ]],
+            ["Fill sinks and find flow direction (steps 2 and 3)", "Makes the terrain drain properly and records where each cell flows.", [
+              ["Fill(utm_dem)", "Fills small pits in the DEM so water can always flow downhill and does not get trapped."],
+              ["FlowDirection(filled_dem, \"NORMAL\", \"D8\")", "For every cell, finds which of the 8 neighbours is steepest downhill (the D8 method)."],
+              ["del filled_dem", "Removes the filled DEM from memory because it is no longer needed."]
+            ]],
+            ["Flow accumulation and streams (steps 4 to 6)", "Counts how much area drains through each cell, then picks the streams.", [
+              ["FlowAccumulation(flow_dir)", "Each cell gets the number of upstream cells that drain into it. Large values mean channels."],
+              ["Con(flow_acc > accumulation_threshold, 1)", "Keeps only cells above the threshold as streams (value 1). All others become NoData."],
+              ["StreamOrder(stream_raster, flow_dir, \"STRAHLER\")", "Gives each stream segment a Strahler order: small headwater streams are 1, and the order rises where equal-order streams join."]
+            ]],
+            ["Create and smooth the stream lines (steps 7 and 8)", "Converts raster streams into vector lines that look natural.", [
+              ["StreamToFeature(stream_order, flow_dir, raw_streams, \"NO_SIMPLIFY\")", "Turns the stream raster into polylines, keeping every vertex."],
+              ["arcpy.cartography.SmoothLine(..., \"PAEK\", tolerance)", "Smooths the stair-step shape of raster lines using the PAEK algorithm (Polynomial Approximation with Exponential Kernel)."]
+            ]],
+            ["Sub-basin watersheds (steps 9 and 10)", "Finds the drainage area of every stream segment and saves it as a raster.", [
+              ["StreamLink(stream_raster, flow_dir)", "Gives each stream segment between junctions its own unique ID."],
+              ["Watershed(flow_dir, stream_links)", "For every stream link, finds all cells that drain into it. This creates one sub-basin per stream segment."],
+              ["sub_basins_ras.save(\"Sub_Basins_Ras.tif\")", "NEW. Saves the sub-basin watershed raster to disk. Watershed() gives a temporary raster, so it must be saved before it is deleted."],
+              ["RasterToPolygon(..., \"NO_SIMPLIFY\", \"Value\")", "Converts the raster to polygons (Sub_Basins.shp) and keeps the raster values in a gridcode field."],
+              ["del sub_basins_ras, stream_links", "Frees memory."]
+            ]],
+            ["Main watershed (steps 11 and 12)", "Finds the outlet of the whole area and traces its watershed.", [
+              ["GetRasterProperties_management(flow_acc, \"MAXIMUM\")", "Reads the highest flow accumulation value. The cell with it is the point where the most water leaves."],
+              ["Con(flow_acc == max_acc_val, 1)", "Marks that single cell as the pour point."],
+              ["Watershed(flow_dir, pour_point_ras)", "Traces every cell that drains to the pour point. This is the main watershed."],
+              ["main_basin_ras.save(\"Main_Watershed.tif\")", "NEW. Saves the main watershed raster to disk."],
+              ["RasterToPolygon(..., \"SIMPLIFY\", \"Value\")", "Converts it to the polygon Main_Basin.shp with simplified, smoother edges."],
+              ["gc.collect()", "Forces Python to release the deleted rasters from memory."]
+            ]],
+            ["Clip to the main basin (step 13)", "Removes anything outside the main watershed.", [
+              ["arcpy.analysis.Clip(sub_basins_vec, main_basin_vec, ...)", "Cuts the sub-basin polygons to the main basin boundary, giving Clipped_Sub_Basins.shp."],
+              ["arcpy.analysis.Clip(smoothed_streams, main_basin_vec, ...)", "Cuts the smoothed streams to the same boundary, giving Clipped_Streams.shp."]
+            ]],
+            ["Add layers to the map", "Shows everything in ArcGIS Pro with styling.", [
+              ["m = aprx.activeMap or aprx.listMaps()[0]", "Uses the open map, or the first map in the project if none is active."],
+              ["Main_Watershed.tif and Sub_Basins_Ras.tif", "NEW. Added first, so they sit at the bottom of the layer stack. Transparency is set to 50% and 40% so the terrain shows through."],
+              ["Main Watershed Boundary", "Added as a polygon layer with a Black Outline symbol."],
+              ["Tributary Sub-Basins", "Uses a unique-value renderer on gridcode, so each sub-basin gets its own colour."],
+              ["Stream Network", "Uses a unique-value renderer on grid_code (the Strahler order)."],
+              ["except Exception as e: print(...)", "If layers cannot be added, the script prints a warning. The files are still saved in the workspace."]
+            ]],
+            ["Error handling and clean-up", "Makes sure the project is saved and the licence is released.", [
+              ["except arcpy.ExecuteError", "Catches errors from ArcGIS tools and prints the tool messages."],
+              ["except Exception as e", "Catches normal Python errors."],
+              ["finally: aprx.save()", "Always saves the project, even after an error, so layers already added are kept."],
+              ["arcpy.CheckInExtension(\"Spatial\")", "Releases the Spatial Analyst licence so others can use it."],
+              ["arcpy.ClearWorkspaceCache_management()", "Releases file locks."]
+            ]]
+          ]
+        }
+        };
+
+        const overlay = document.getElementById('overlay');
+        const drawer = document.getElementById('drawer');
+        let lastBtn = null;
+
+        function openExplain(key, btn) {
+            const d = EXPLAIN[key];
+            lastBtn = btn || null;
+            document.getElementById('drawerTitle').textContent = d.title;
+            document.getElementById('drawerIntro').textContent = d.intro;
+            const body = document.getElementById('drawerBody');
+            body.innerHTML = '';
+            d.steps.forEach(function (s, i) {
+                const det = document.createElement('details');
+                det.className = 'step';
+                if (i === 0) det.open = true;
+                const sum = document.createElement('summary');
+                const n = document.createElement('span'); n.className = 'num'; n.textContent = i + 1;
+                sum.appendChild(n); sum.appendChild(document.createTextNode(s[0]));
+                det.appendChild(sum);
+                const p = document.createElement('p'); p.className = 'step-desc'; p.textContent = s[1];
+                det.appendChild(p);
+                const box = document.createElement('div'); box.className = 'lines';
+                s[2].forEach(function (r) {
+                    const row = document.createElement('div'); row.className = 'line-row';
+                    const c = document.createElement('code'); c.textContent = r[0];
+                    const e = document.createElement('span'); e.textContent = r[1];
+                    row.appendChild(c); row.appendChild(e); box.appendChild(row);
+                });
+                det.appendChild(box); body.appendChild(det);
+            });
+            body.scrollTop = 0;
+            overlay.classList.add('open'); drawer.classList.add('open');
+            document.getElementById('closeBtn').focus();
+        }
+        function closeExplain() {
+            overlay.classList.remove('open'); drawer.classList.remove('open');
+            if (lastBtn) lastBtn.focus();
+        }
+        function toggleAll(open) {
+            document.querySelectorAll('#drawerBody details').forEach(function (d) { d.open = open; });
+        }
+        overlay.addEventListener('click', closeExplain);
+        document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeExplain(); });
+    </script>
+</body>
+</html>
