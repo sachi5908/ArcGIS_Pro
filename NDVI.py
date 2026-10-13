@@ -12,19 +12,19 @@ arcpy.ClearWorkspaceCache_management()
 base_dir = r"D:\Geoinformatics\BAND Files"
 arcpy.env.workspace = base_dir
 
-print("Initializing error-proof NDWI workflow...")
+print("Initializing error-proof NDVI workflow...")
 
 # ==========================================
 # 2. MOSAIC BANDS
 # ==========================================
-print("Mosaicking Band 3 (Green) and Band 5 (NIR)...")
-b3_list = arcpy.ListRasters("LC*_B3*", "TIF")
+print("Mosaicking Band 4 (Red) and Band 5 (NIR)...")
+b4_list = arcpy.ListRasters("LC*_B4*", "TIF")
 b5_list = arcpy.ListRasters("LC*_B5*", "TIF")
 
 arcpy.management.MosaicToNewRaster(
-    input_rasters=b3_list, 
+    input_rasters=b4_list, 
     output_location=base_dir, 
-    raster_dataset_name_with_extension="Simple_B3.tif", 
+    raster_dataset_name_with_extension="Simple_B4.tif", 
     pixel_type="16_BIT_UNSIGNED", 
     number_of_bands=1
 )
@@ -38,14 +38,14 @@ arcpy.management.MosaicToNewRaster(
 )
 
 # ==========================================
-# 3. CALCULATE NDWI DIRECTLY
+# 3. CALCULATE NDVI DIRECTLY
 # ==========================================
-print("Calculating NDWI directly from bands...")
-b3 = Raster("Simple_B3.tif")
+print("Calculating NDVI directly from bands...")
+b4 = Raster("Simple_B4.tif")
 b5 = Raster("Simple_B5.tif")
 
-# Standard Index Math: (Green - NIR) / (Green + NIR)
-ndwi = (Float(b3) - Float(b5)) / (Float(b3) + Float(b5))
+# Standard Index Math: (NIR - Red) / (NIR + Red)
+ndvi = (Float(b5) - Float(b4)) / (Float(b5) + Float(b4))
 
 # ==========================================
 # 4. CONVERT KML TO SHAPEFILE (ANY GEOMETRY)
@@ -100,17 +100,17 @@ final_output = ""
 
 try:
     # Attempt to clip using the newly generated shapefile
-    ndwi_clipped = ExtractByMask(ndwi, mask_feature)
-    final_output = os.path.join(base_dir, "Simple_NDWI_Final.tif")
-    ndwi_clipped.save(final_output)
+    ndvi_clipped = ExtractByMask(ndvi, mask_feature)
+    final_output = os.path.join(base_dir, "Simple_NDVI_Final.tif")
+    ndvi_clipped.save(final_output)
     print("--> Clipping successful!")
     
 except Exception as e:
     # FAILSAFE: Save the unclipped raster if clipping still fails
     print(f"⚠️ Clipping failed: {e}")
-    print("--> FAILSAFE TRIGGERED: Saving the unclipped NDWI so you have the data...")
-    final_output = os.path.join(base_dir, "Simple_NDWI_Unclipped.tif")
-    ndwi.save(final_output)
+    print("--> FAILSAFE TRIGGERED: Saving the unclipped NDVI so you have the data...")
+    final_output = os.path.join(base_dir, "Simple_NDVI_Unclipped.tif")
+    ndvi.save(final_output)
 
 # ==========================================
 # 6. ADD TO MAP & AUTOSAVE PROJECT
